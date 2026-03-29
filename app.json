@@ -15,12 +15,19 @@
     "ios": {
       "supportsTablet": true
     },
-    "android": {},
+    "android": {
+      "package": "com.haidernadaf.peakoraai"
+    },
     "web": {
       "bundler": "metro"
     },
     "plugins": [
       "expo-secure-store"
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "164d3e90-9ec5-4db7-84b0-9a9fb0fab09d"
+      }
+    }
   }
 }
