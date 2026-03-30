@@ -16,6 +16,7 @@
     "axios": "^1.13.6",
     "expo": "~54.0.33",
     "expo-av": "~16.0.8",
+    "expo-build-properties": "^55.0.10",
     "expo-file-system": "~19.0.21",
     "expo-secure-store": "~15.0.8",
     "expo-status-bar": "~3.0.9",
