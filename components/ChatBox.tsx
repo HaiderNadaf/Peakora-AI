@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
-import { ScrollView, StyleSheet, Text, View } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
+import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 
 type Message = {
   role: "user" | "assistant";
@@ -12,28 +13,33 @@ type ChatBoxProps = {
 };
 
 export default function ChatBox({ messages, loading }: ChatBoxProps) {
-  const scrollRef = useRef<ScrollView | null>(null);
+  const scrollRef = useRef<KeyboardAwareScrollView | null>(null);
 
   useEffect(() => {
     const timeout = setTimeout(() => {
-      scrollRef.current?.scrollToEnd({ animated: true });
-    }, 50);
+      scrollRef.current?.scrollToEnd(true);
+    }, 100);
     return () => clearTimeout(timeout);
   }, [messages, loading]);
 
   return (
-    <ScrollView
+    <KeyboardAwareScrollView
       ref={scrollRef}
       style={styles.container}
       contentContainerStyle={styles.content}
       keyboardShouldPersistTaps="handled"
+      enableOnAndroid
+      extraScrollHeight={80}
+      showsVerticalScrollIndicator={false}
     >
       {messages.length === 0 ? (
         <View style={styles.emptyState}>
           <View style={styles.emptyBadge}>
             <Text style={styles.emptyBadgeText}>P</Text>
           </View>
+
           <Text style={styles.emptyTitle}>How can I help you today?</Text>
+
           <Text style={styles.emptySubtitle}>
             Messages are saved in device storage.
           </Text>
@@ -47,15 +53,18 @@ export default function ChatBox({ messages, loading }: ChatBoxProps) {
               message.role === "user" ? styles.rowUser : styles.rowAssistant,
             ]}
           >
-            {message.role === "assistant" ? (
+            {message.role === "assistant" && (
               <View style={styles.avatar}>
                 <Text style={styles.avatarText}>P</Text>
               </View>
-            ) : null}
+            )}
+
             <View
               style={[
                 styles.bubble,
-                message.role === "user" ? styles.userBubble : styles.assistantBubble,
+                message.role === "user"
+                  ? styles.userBubble
+                  : styles.assistantBubble,
               ]}
             >
               <Text style={styles.messageText}>{message.text}</Text>
@@ -69,22 +78,29 @@ export default function ChatBox({ messages, loading }: ChatBoxProps) {
           <View style={styles.avatar}>
             <Text style={styles.avatarText}>P</Text>
           </View>
+
           <View style={[styles.bubble, styles.assistantBubble]}>
             <Text style={styles.loadingText}>Thinking...</Text>
           </View>
         </View>
       )}
-    </ScrollView>
+    </KeyboardAwareScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#212121" },
-  content: { paddingVertical: 10, paddingHorizontal: 2 },
+  container: {
+    flex: 1,
+    backgroundColor: "#212121",
+  },
+  content: {
+    paddingVertical: 10,
+    paddingHorizontal: 8,
+  },
   emptyState: {
     alignItems: "center",
     justifyContent: "center",
-    minHeight: 240,
+    minHeight: 300,
     gap: 10,
   },
   emptyBadge: {
@@ -102,15 +118,29 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     fontSize: 17,
   },
-  emptyTitle: { color: "#f0f0f0", fontSize: 22, fontWeight: "700" },
-  emptySubtitle: { color: "#9f9f9f", fontSize: 13, textAlign: "center" },
+  emptyTitle: {
+    color: "#f0f0f0",
+    fontSize: 22,
+    fontWeight: "700",
+    textAlign: "center",
+  },
+  emptySubtitle: {
+    color: "#9f9f9f",
+    fontSize: 13,
+    textAlign: "center",
+  },
   row: {
     flexDirection: "row",
     marginBottom: 14,
     alignItems: "flex-start",
   },
-  rowUser: { justifyContent: "flex-end" },
-  rowAssistant: { justifyContent: "flex-start", gap: 8 },
+  rowUser: {
+    justifyContent: "flex-end",
+  },
+  rowAssistant: {
+    justifyContent: "flex-start",
+    gap: 8,
+  },
   avatar: {
     width: 28,
     height: 28,
@@ -122,9 +152,13 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     marginTop: 3,
   },
-  avatarText: { color: "#f1f1f1", fontSize: 12, fontWeight: "700" },
+  avatarText: {
+    color: "#f1f1f1",
+    fontSize: 12,
+    fontWeight: "700",
+  },
   bubble: {
-    maxWidth: "86%",
+    maxWidth: "85%",
     paddingVertical: 11,
     paddingHorizontal: 14,
     borderRadius: 16,
@@ -141,6 +175,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 2,
     maxWidth: "78%",
   },
-  messageText: { color: "#ececec", lineHeight: 23, fontSize: 16 },
-  loadingText: { color: "#a9a9a9", fontStyle: "italic" },
+  messageText: {
+    color: "#ececec",
+    lineHeight: 23,
+    fontSize: 16,
+  },
+  loadingText: {
+    color: "#a9a9a9",
+    fontStyle: "italic",
+  },
 });
