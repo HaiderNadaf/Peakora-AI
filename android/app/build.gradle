@@ -121,12 +121,18 @@ android {
             crunchPngs enablePngCrunchInRelease.toBoolean()
         }
     }
-    packagingOptions {
-        jniLibs {
-            def enableLegacyPackaging = findProperty('expo.useLegacyPackaging') ?: 'false'
-            useLegacyPackaging enableLegacyPackaging.toBoolean()
-        }
+ packagingOptions {
+    jniLibs {
+        def enableLegacyPackaging = findProperty('expo.useLegacyPackaging') ?: 'false'
+        useLegacyPackaging enableLegacyPackaging.toBoolean()
     }
+
+    resources {
+        pickFirsts += [
+            "META-INF/versions/9/OSGI-INF/MANIFEST.MF"
+        ]
+    }
+}
     androidResources {
         ignoreAssetsPattern '!.svn:!.git:!.ds_store:!*.scc:!CVS:!thumbs.db:!picasa.ini:!*~'
     }
