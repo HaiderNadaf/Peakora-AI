@@ -5,6 +5,8 @@ import {
   Text,
   TextInput,
   View,
+  Keyboard,
+  Platform,
   type NativeSyntheticEvent,
   type TextInputSubmitEditingEventData,
 } from "react-native";
@@ -25,17 +27,20 @@ export default function Input({
   isRecording,
 }: InputProps) {
   const [value, setValue] = useState("");
+
   const canSend = !disabled && value.trim().length > 0;
 
   const submitValue = async () => {
     const trimmed = value.trim();
     if (!trimmed) return;
+
     await onSubmit(trimmed);
     setValue("");
+    Keyboard.dismiss(); // 👈 closes keyboard after send
   };
 
   const handleSubmitEditing = (
-    event: NativeSyntheticEvent<TextInputSubmitEditingEventData>
+    event: NativeSyntheticEvent<TextInputSubmitEditingEventData>,
   ) => {
     if (!event.nativeEvent.text?.trim()) return;
     void submitValue();
@@ -44,7 +49,9 @@ export default function Input({
   return (
     <View style={styles.shell}>
       <Text style={styles.helperText}>
-        {isRecording ? "Listening... I will send when you pause" : "Message Peakora AI"}
+        {isRecording
+          ? "Listening... I will send when you pause"
+          : "Message Peakora AI"}
       </Text>
 
       <TextInput
@@ -54,9 +61,13 @@ export default function Input({
         placeholderTextColor="#8d8d8d"
         editable={!disabled}
         multiline
-        numberOfLines={3}
         style={styles.input}
-        onSubmitEditing={handleSubmitEditing}
+        textAlignVertical="top" // 👈 FIX for multiline UI
+        returnKeyType="send"
+        blurOnSubmit={false} // 👈 important for multiline
+        onSubmitEditing={
+          Platform.OS === "ios" ? handleSubmitEditing : undefined
+        }
       />
 
       <View style={styles.row}>
@@ -66,8 +77,8 @@ export default function Input({
             onPress={onClear}
             style={({ pressed }) => [
               styles.newChat,
-              pressed && !disabled ? styles.pressed : undefined,
-              disabled ? styles.disabled : undefined,
+              pressed && !disabled && styles.pressed,
+              disabled && styles.disabled,
             ]}
           >
             <Text style={styles.newChatText}>New</Text>
@@ -79,10 +90,9 @@ export default function Input({
             style={({ pressed }) => [
               styles.mic,
               isRecording ? styles.micActive : styles.micIdle,
-              pressed && !disabled ? styles.pressed : undefined,
-              disabled ? styles.disabled : undefined,
+              pressed && !disabled && styles.pressed,
+              disabled && styles.disabled,
             ]}
-            accessibilityLabel="Record speech"
           >
             <Text style={styles.micText}>Mic</Text>
           </Pressable>
@@ -94,9 +104,8 @@ export default function Input({
           style={({ pressed }) => [
             styles.send,
             canSend ? styles.sendEnabled : styles.sendDisabled,
-            pressed && canSend ? styles.pressed : undefined,
+            pressed && canSend && styles.pressed,
           ]}
-          accessibilityLabel="Send message"
         >
           <Text style={styles.sendText}>Send</Text>
         </Pressable>
@@ -123,8 +132,8 @@ const styles = StyleSheet.create({
     color: "#ececec",
     fontSize: 16,
     lineHeight: 22,
-    maxHeight: 180,
-    minHeight: 26,
+    maxHeight: 150,
+    minHeight: 40,
     paddingHorizontal: 4,
   },
   row: {
@@ -143,9 +152,12 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     paddingVertical: 6,
     paddingHorizontal: 12,
-    backgroundColor: "transparent",
   },
-  newChatText: { color: "#cfcfcf", fontSize: 12, fontWeight: "600" },
+  newChatText: {
+    color: "#cfcfcf",
+    fontSize: 12,
+    fontWeight: "600",
+  },
   mic: {
     width: 42,
     height: 36,
@@ -177,7 +189,11 @@ const styles = StyleSheet.create({
   },
   sendEnabled: { backgroundColor: "#ececec" },
   sendDisabled: { backgroundColor: "#3a3a3a" },
-  sendText: { color: "#111", fontSize: 12, fontWeight: "700" },
+  sendText: {
+    color: "#111",
+    fontSize: 12,
+    fontWeight: "700",
+  },
   disabled: { opacity: 0.5 },
   pressed: { opacity: 0.8 },
 });
