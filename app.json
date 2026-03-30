@@ -30,21 +30,22 @@
       "bundler": "metro"
     },
 
-    "plugins": [
-      [
-        "expo-build-properties",
-        {
-          "android": {
-            "packagingOptions": {
-              "pickFirsts": [
-                "META-INF/versions/9/OSGI-INF/MANIFEST.MF"
-              ]
-            }
-          }
+ "plugins": [
+  [
+    "expo-build-properties",
+    {
+      "android": {
+        "packagingOptions": {
+          "pickFirsts": [
+            "META-INF/versions/9/OSGI-INF/MANIFEST.MF",
+            "META-INF/*"
+          ]
         }
-      ],
-      "expo-secure-store"
-    ],
+      }
+    }
+  ],
+  "expo-secure-store"
+],
 
     "extra": {
       "eas": {
