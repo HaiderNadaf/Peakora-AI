@@ -11,6 +11,7 @@
   "dependencies": {
     "@clerk/expo": "^3.1.5",
     "@react-native-async-storage/async-storage": "^2.1.0",
+    "@solana/web3.js": "^1.98.4",
     "agent-base": "^8.0.0",
     "axios": "^1.13.6",
     "expo": "~54.0.33",
