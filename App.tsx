@@ -704,8 +704,9 @@ function AppContent() {
       <SafeAreaProvider>
         <SafeAreaView style={styles.safeArea} edges={["top", "bottom"]}>
           <KeyboardAvoidingView
-            style={styles.authContainer}
-            behavior={Platform.OS === "ios" ? "padding" : undefined}
+            style={styles.container}
+            behavior={Platform.OS === "ios" ? "padding" : "height"} // ✅ FIX
+            keyboardVerticalOffset={Platform.OS === "ios" ? 80 : 0} // ✅ important
           >
             <View style={styles.authCard}>
               <Text style={styles.authTitle}>Peakora AI</Text>
@@ -834,7 +835,8 @@ function AppContent() {
         <StatusBar style="light" />
         <KeyboardAvoidingView
           style={styles.container}
-          behavior={Platform.OS === "ios" ? "padding" : undefined}
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+          keyboardVerticalOffset={Platform.OS === "ios" ? 80 : 0}
         >
           <View style={styles.header}>
             <Text style={styles.title}>Peakora AI</Text>
@@ -856,13 +858,15 @@ function AppContent() {
             <ChatBox messages={messages} loading={loading} />
           </View>
 
-          <Input
-            onSubmit={handleSubmit}
-            onClear={() => void clearMessages()}
-            onMicPress={() => void handleMicPress()}
-            isRecording={isRecording}
-            disabled={loading}
-          />
+          <View style={{ paddingBottom: 4 }}>
+            <Input
+              onSubmit={handleSubmit}
+              onClear={() => void clearMessages()}
+              onMicPress={() => void handleMicPress()}
+              isRecording={isRecording}
+              disabled={loading}
+            />
+          </View>
 
           <Modal
             visible={voiceSessionOpen}

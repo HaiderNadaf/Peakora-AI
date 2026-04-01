@@ -20,6 +20,7 @@
 
     "android": {
       "package": "com.haidernadaf.peakoraai",
+      "softwareKeyboardLayoutMode": "resize",
       "adaptiveIcon": {
         "foregroundImage": "./assets/icon.png",
         "backgroundColor": "#000000"
@@ -30,22 +31,22 @@
       "bundler": "metro"
     },
 
- "plugins": [
-  [
-    "expo-build-properties",
-    {
-      "android": {
-        "packagingOptions": {
-          "pickFirsts": [
-            "META-INF/versions/9/OSGI-INF/MANIFEST.MF",
-            "META-INF/*"
-          ]
+    "plugins": [
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "packagingOptions": {
+              "pickFirsts": [
+                "META-INF/versions/9/OSGI-INF/MANIFEST.MF",
+                "META-INF/*"
+              ]
+            }
+          }
         }
-      }
-    }
-  ],
-  "expo-secure-store"
-],
+      ],
+      "expo-secure-store"
+    ],
 
     "extra": {
       "eas": {
