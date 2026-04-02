@@ -5,32 +5,32 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "userInterfaceStyle": "dark",
-
     "icon": "./assets/icon.png",
-
     "splash": {
       "resizeMode": "contain",
       "backgroundColor": "#171717"
     },
-    "assetBundlePatterns": ["**/*"],
-
+    "assetBundlePatterns": [
+      "**/*"
+    ],
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "runtimeVersion": {
+        "policy": "appVersion"
+      }
     },
-
     "android": {
       "package": "com.haidernadaf.peakoraai",
       "softwareKeyboardLayoutMode": "resize",
       "adaptiveIcon": {
         "foregroundImage": "./assets/icon.png",
         "backgroundColor": "#000000"
-      }
+      },
+      "runtimeVersion": "1.0.0"
     },
-
     "web": {
       "bundler": "metro"
     },
-
     "plugins": [
       [
         "expo-build-properties",
@@ -47,11 +47,13 @@
       ],
       "expo-secure-store"
     ],
-
     "extra": {
       "eas": {
         "projectId": "164d3e90-9ec5-4db7-84b0-9a9fb0fab09d"
       }
+    },
+    "updates": {
+      "url": "https://u.expo.dev/164d3e90-9ec5-4db7-84b0-9a9fb0fab09d"
     }
   }
 }
