@@ -120,7 +120,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#3f3f3f",
     borderRadius: 24,
-    backgroundColor: "red",
+    backgroundColor: "#2b2b2b",
     padding: 12,
   },
   helperText: {
