@@ -704,124 +704,130 @@ function AppContent() {
       <SafeAreaProvider>
         <SafeAreaView style={styles.safeArea} edges={["top", "bottom"]}>
           <KeyboardAvoidingView
-            style={styles.container}
-            behavior={Platform.OS === "ios" ? "padding" : "height"} // ✅ FIX
-            keyboardVerticalOffset={Platform.OS === "ios" ? 80 : 0} // ✅ important
+            style={{ flex: 1 }}
+            behavior={Platform.OS === "ios" ? "padding" : "height"}
+            keyboardVerticalOffset={Platform.OS === "ios" ? 80 : 0}
           >
-            <View style={styles.authCard}>
-              <Text style={styles.authTitle}>Peakora AI</Text>
-              <Text style={styles.authSubtitle}>
-                {authStep === "verify-email"
-                  ? "Enter the verification code from your email"
-                  : authMode === "login"
-                    ? "Login with Clerk"
-                    : "Create your account with Clerk"}
-              </Text>
+            <View style={styles.authCenter}>
+              <View style={styles.authCard}>
+                <Text style={styles.authTitle}>Peakora AI</Text>
 
-              <TextInput
-                style={styles.authInput}
-                placeholder="Email"
-                placeholderTextColor="#8f8f8f"
-                autoCapitalize="none"
-                keyboardType="email-address"
-                value={email}
-                onChangeText={setEmail}
-                editable={!authSubmitting}
-              />
-              <TextInput
-                style={styles.authInput}
-                placeholder="Password"
-                placeholderTextColor="#8f8f8f"
-                secureTextEntry
-                value={password}
-                onChangeText={setPassword}
-                editable={!authSubmitting && authStep === "credentials"}
-              />
+                <Text style={styles.authSubtitle}>
+                  {authStep === "verify-email"
+                    ? "Enter the verification code from your email"
+                    : authMode === "login"
+                      ? "Login with Clerk"
+                      : "Create your account with Clerk"}
+                </Text>
 
-              {authStep === "verify-email" ? (
                 <TextInput
                   style={styles.authInput}
-                  placeholder="Verification code"
+                  placeholder="Email"
                   placeholderTextColor="#8f8f8f"
-                  value={verificationCode}
-                  onChangeText={setVerificationCode}
+                  autoCapitalize="none"
+                  keyboardType="email-address"
+                  value={email}
+                  onChangeText={setEmail}
                   editable={!authSubmitting}
-                  keyboardType="number-pad"
                 />
-              ) : null}
 
-              {!!authError && <Text style={styles.authError}>{authError}</Text>}
+                <TextInput
+                  style={styles.authInput}
+                  placeholder="Password"
+                  placeholderTextColor="#8f8f8f"
+                  secureTextEntry
+                  value={password}
+                  onChangeText={setPassword}
+                  editable={!authSubmitting && authStep === "credentials"}
+                />
 
-              <Pressable
-                disabled={authSubmitting}
-                onPress={() =>
-                  void (authStep === "verify-email"
-                    ? handleVerifySignup()
-                    : handleAuth())
-                }
-                style={[
-                  styles.authButton,
-                  authSubmitting ? styles.authButtonDisabled : undefined,
-                ]}
-              >
-                {authSubmitting ? (
-                  <View style={styles.authButtonLoader}>
-                    <ActivityIndicator size="small" color="#1b1b1b" />
+                {authStep === "verify-email" && (
+                  <TextInput
+                    style={styles.authInput}
+                    placeholder="Verification code"
+                    placeholderTextColor="#8f8f8f"
+                    value={verificationCode}
+                    onChangeText={setVerificationCode}
+                    editable={!authSubmitting}
+                    keyboardType="number-pad"
+                  />
+                )}
+
+                {!!authError && (
+                  <Text style={styles.authError}>{authError}</Text>
+                )}
+
+                <Pressable
+                  disabled={authSubmitting}
+                  onPress={() =>
+                    void (authStep === "verify-email"
+                      ? handleVerifySignup()
+                      : handleAuth())
+                  }
+                  style={[
+                    styles.authButton,
+                    authSubmitting && styles.authButtonDisabled,
+                  ]}
+                >
+                  {authSubmitting ? (
+                    <View style={styles.authButtonLoader}>
+                      <ActivityIndicator size="small" color="#1b1b1b" />
+                      <Text style={styles.authButtonText}>
+                        {authStep === "verify-email"
+                          ? "Verifying..."
+                          : authMode === "login"
+                            ? "Logging in..."
+                            : "Signing up..."}
+                      </Text>
+                    </View>
+                  ) : (
                     <Text style={styles.authButtonText}>
                       {authStep === "verify-email"
-                        ? "Verifying..."
+                        ? "Verify email"
                         : authMode === "login"
-                          ? "Logging in..."
-                          : "Signing up..."}
+                          ? "Login"
+                          : "Sign up"}
                     </Text>
-                  </View>
-                ) : (
-                  <Text style={styles.authButtonText}>
-                    {authStep === "verify-email"
-                      ? "Verify email"
-                      : authMode === "login"
-                        ? "Login"
-                        : "Sign up"}
-                  </Text>
-                )}
-              </Pressable>
+                  )}
+                </Pressable>
 
-              <Pressable
-                disabled={authSubmitting}
-                onPress={() => {
-                  setVerificationCode("");
-                  setAuthMode((prev) =>
-                    prev === "login" ? "signup" : "login",
-                  );
-                  setAuthStep("credentials");
-                  setAuthError("");
-                }}
-              >
-                <Text style={styles.switchModeText}>
-                  {authStep === "verify-email"
-                    ? "Back to sign up"
-                    : authMode === "login"
-                      ? "No account? Sign up"
-                      : "Already have an account? Login"}
-                </Text>
-              </Pressable>
-
-              {authStep === "verify-email" ? (
                 <Pressable
                   disabled={authSubmitting}
                   onPress={() => {
-                    setAuthStep("credentials");
                     setVerificationCode("");
+                    setAuthMode((prev) =>
+                      prev === "login" ? "signup" : "login",
+                    );
+                    setAuthStep("credentials");
                     setAuthError("");
                   }}
                 >
                   <Text style={styles.switchModeText}>
-                    Change email or password
+                    {authStep === "verify-email"
+                      ? "Back to sign up"
+                      : authMode === "login"
+                        ? "No account? Sign up"
+                        : "Already have an account? Login"}
                   </Text>
                 </Pressable>
-              ) : null}
 
-              {authMode === "signup" ? <View nativeID="clerk-captcha" /> : null}
+                {authStep === "verify-email" && (
+                  <Pressable
+                    disabled={authSubmitting}
+                    onPress={() => {
+                      setAuthStep("credentials");
+                      setVerificationCode("");
+                      setAuthError("");
+                    }}
+                  >
+                    <Text style={styles.switchModeText}>
+                      Change email or password
+                    </Text>
+                  </Pressable>
+                )}
+
+                {authMode === "signup" && <View nativeID="clerk-captcha" />}
+              </View>
             </View>
           </KeyboardAvoidingView>
         </SafeAreaView>
@@ -949,6 +955,12 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 12,
   },
+  authCenter: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 16,
+  },
   loaderText: { color: "#f5f5f5" },
   authContainer: {
     flex: 1,
@@ -957,6 +969,8 @@ const styles = StyleSheet.create({
     backgroundColor: "#212121",
   },
   authCard: {
+    width: "100%",
+    maxWidth: 400,
     borderWidth: 1,
     borderColor: "#3a3a3a",
     backgroundColor: "#2a2a2a",
