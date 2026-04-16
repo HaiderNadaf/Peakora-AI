@@ -268,3 +268,46 @@ export async function transcribeAudio(uri: string, token?: string | null) {
 
   return data.text ?? "";
 }
+
+// ----------------------------------------------------
+// New API Functions for P2P Chat and Sharing
+// ----------------------------------------------------
+
+export type SimpleUser = {
+  id: string;
+  email: string;
+  username: string | null;
+};
+
+export type SimpleDirectMessage = {
+  id: string;
+  senderId: string;
+  receiverId: string;
+  content: string;
+  createdAt: string;
+};
+
+export async function getUsers() {
+  const { data } = await api.get<SimpleUser[]>("/api/users");
+  return data;
+}
+
+export async function getSimpleConversations() {
+  const { data } = await api.get<Array<{ user: SimpleUser; lastMessage?: SimpleDirectMessage }>>("/api/direct-messages");
+  return data;
+}
+
+export async function getSimpleMessagesWithUser(otherUserId: string) {
+  const { data } = await api.get<SimpleDirectMessage[]>(`/api/direct-messages/${otherUserId}`);
+  return data;
+}
+
+export async function sendSimpleDirectMessage(receiverId: string, content: string) {
+  const { data } = await api.post<SimpleDirectMessage>("/api/direct-messages", { receiverId, content });
+  return data;
+}
+
+export async function updateExpoPushToken(expoPushToken: string) {
+  await api.post("/api/users/push-token", { expoPushToken });
+}
+

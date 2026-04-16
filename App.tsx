@@ -10,6 +10,10 @@ import * as FileSystem from "expo-file-system/legacy";
 import { Audio } from "expo-av";
 import { StatusBar } from "expo-status-bar";
 import axios from "axios";
+import { Ionicons } from "@expo/vector-icons";
+import * as Notifications from "expo-notifications";
+import * as Device from "expo-device";
+import Constants from "expo-constants";
 import { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
@@ -25,6 +29,9 @@ import {
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import ChatBox from "./components/ChatBox";
 import Input from "./components/Input";
+import MessagesList from "./components/MessagesList";
+import DirectChat from "./components/DirectChat";
+import ShareModal from "./components/ShareModal";
 import {
   generateVoiceBase64,
   getMe,
@@ -33,7 +40,48 @@ import {
   setAuthToken,
   setTokenProvider,
   transcribeAudio,
+  updateExpoPushToken,
+  SimpleUser,
 } from "./services/api";
+
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowAlert: true,
+    shouldPlaySound: true,
+    shouldSetBadge: false,
+  }),
+});
+
+async function registerForPushNotificationsAsync() {
+  let token;
+  if (Platform.OS === 'android') {
+    await Notifications.setNotificationChannelAsync('default', {
+      name: 'default',
+      importance: Notifications.AndroidImportance.MAX,
+      vibrationPattern: [0, 250, 250, 250],
+      lightColor: '#FF231F7C',
+    });
+  }
+
+  if (Device.isDevice) {
+    const { status: existingStatus } = await Notifications.getPermissionsAsync();
+    let finalStatus = existingStatus;
+    if (existingStatus !== 'granted') {
+      const { status } = await Notifications.requestPermissionsAsync();
+      finalStatus = status;
+    }
+    if (finalStatus !== 'granted') {
+      console.log('Failed to get push token for push notification!');
+      return;
+    }
+    const projectId = Constants.expoConfig?.extra?.eas?.projectId ?? Constants.easConfig?.projectId ?? "";
+    token = (await Notifications.getExpoPushTokenAsync({ projectId })).data;
+  } else {
+    console.log('Must use physical device for Push Notifications');
+  }
+
+  return token;
+}
 
 type Message = {
   role: "user" | "assistant";
@@ -58,6 +106,10 @@ if (!clerkPublishableKey) {
 
 function AppContent() {
   const [messages, setMessages] = useState<Message[]>([]);
+  const [currentScreen, setCurrentScreen] = useState<"ai" | "messages" | "chat">("ai");
+  const [selectedUser, setSelectedUser] = useState<SimpleUser | null>(null);
+  const [shareModalVisible, setShareModalVisible] = useState(false);
+  const [contentToShare, setContentToShare] = useState("");
   const [loading, setLoading] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [recording, setRecording] = useState<Audio.Recording | null>(null);
@@ -157,6 +209,15 @@ function AppContent() {
           await getMe();
           if (!cancelled) {
             await loadHistory();
+            
+            try {
+              const pushToken = await registerForPushNotificationsAsync();
+              if (pushToken) {
+                await updateExpoPushToken(pushToken);
+              }
+            } catch (notifyErr) {
+              console.log("Push token error:", notifyErr);
+            }
           }
         } catch (error) {
           if (!cancelled) {
@@ -845,34 +906,80 @@ function AppContent() {
           keyboardVerticalOffset={Platform.OS === "ios" ? 80 : 0}
         >
           <View style={styles.header}>
-            <Text style={styles.title}>Peakora AI</Text>
-            <View style={styles.headerRight}>
-              <Text style={styles.status}>
-                {isRecording
-                  ? "Listening..."
-                  : loading
-                    ? "Thinking..."
-                    : voiceStatus}
-              </Text>
-              <Pressable onPress={() => void handleLogout()}>
-                <Text style={styles.logoutText}>Logout</Text>
-              </Pressable>
-            </View>
+            {currentScreen === "ai" ? (
+              <>
+                <Text style={styles.title}>Peakora AI</Text>
+                <View style={styles.headerRight}>
+                  <Text style={styles.status}>
+                    {isRecording ? "Listening..." : loading ? "Thinking..." : voiceStatus}
+                  </Text>
+                  <Pressable onPress={() => setCurrentScreen("messages")}>
+                    <Ionicons name="chatbubbles-outline" size={24} color="#d7d7d7" />
+                  </Pressable>
+                </View>
+              </>
+            ) : (
+              <>
+                <Pressable onPress={() => {
+                  if (currentScreen === "chat") setCurrentScreen("messages");
+                  else setCurrentScreen("ai");
+                }}>
+                  <Text style={styles.title}>
+                    {"<"} {currentScreen === "chat" ? selectedUser?.username || selectedUser?.email.split('@')[0] || "Chat" : "Messages"}
+                  </Text>
+                </Pressable>
+                <View style={styles.headerRight}>
+                  <Pressable onPress={() => void handleLogout()}>
+                    <Text style={styles.logoutText}>Logout</Text>
+                  </Pressable>
+                </View>
+              </>
+            )}
           </View>
 
-          <View style={styles.chatArea}>
-            <ChatBox messages={messages} loading={loading} />
+          <View style={[styles.chatArea, currentScreen !== "ai" && { paddingHorizontal: 0, paddingBottom: 0 }]}>
+            {currentScreen === "ai" && (
+              <>
+                <ChatBox 
+                  messages={messages} 
+                  loading={loading} 
+                  onShare={(text) => {
+                    setContentToShare(text);
+                    setShareModalVisible(true);
+                  }}
+                />
+                <View style={{ paddingBottom: 4 }}>
+                  <Input
+                    onSubmit={handleSubmit}
+                    onClear={() => void clearMessages()}
+                    onMicPress={() => void handleMicPress()}
+                    isRecording={isRecording}
+                    disabled={loading}
+                  />
+                </View>
+              </>
+            )}
+
+            {currentScreen === "messages" && (
+              <MessagesList onSelectUser={(u) => {
+                setSelectedUser(u);
+                setCurrentScreen("chat");
+              }} />
+            )}
+
+            {currentScreen === "chat" && selectedUser && (
+              <DirectChat otherUser={selectedUser} />
+            )}
           </View>
 
-          <View style={{ paddingBottom: 4 }}>
-            <Input
-              onSubmit={handleSubmit}
-              onClear={() => void clearMessages()}
-              onMicPress={() => void handleMicPress()}
-              isRecording={isRecording}
-              disabled={loading}
-            />
-          </View>
+          <ShareModal
+            visible={shareModalVisible}
+            contentToShare={contentToShare}
+            onClose={() => setShareModalVisible(false)}
+            onShared={() => {
+              setCurrentScreen("messages");
+            }}
+          />
 
           <Modal
             visible={voiceSessionOpen}

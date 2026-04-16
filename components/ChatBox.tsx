@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-import { StyleSheet, Text, View } from "react-native";
+import { StyleSheet, Text, View, Pressable } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 
 type Message = {
@@ -10,9 +10,10 @@ type Message = {
 type ChatBoxProps = {
   messages: Message[];
   loading?: boolean;
+  onShare?: (text: string) => void;
 };
 
-export default function ChatBox({ messages, loading }: ChatBoxProps) {
+export default function ChatBox({ messages, loading, onShare }: ChatBoxProps) {
   const scrollRef = useRef<KeyboardAwareScrollView | null>(null);
 
   useEffect(() => {
@@ -68,6 +69,12 @@ export default function ChatBox({ messages, loading }: ChatBoxProps) {
               ]}
             >
               <Text style={styles.messageText}>{message.text}</Text>
+              
+              {message.role === "assistant" && onShare && (
+                <Pressable onPress={() => onShare(message.text)} style={styles.shareButton}>
+                  <Text style={styles.shareIcon}>↗</Text>
+                </Pressable>
+              )}
             </View>
           </View>
         ))
@@ -183,5 +190,21 @@ const styles = StyleSheet.create({
   loadingText: {
     color: "#a9a9a9",
     fontStyle: "italic",
+  },
+  shareButton: {
+    position: 'absolute',
+    top: 4,
+    right: -24,
+    backgroundColor: '#3e3e3e',
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  shareIcon: {
+    color: '#ececec',
+    fontSize: 14,
+    fontWeight: 'bold',
   },
 });
