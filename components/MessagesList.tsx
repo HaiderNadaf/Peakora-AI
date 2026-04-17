@@ -1,7 +1,21 @@
-import React, { useEffect, useState } from "react";
-import { View, Text, StyleSheet, FlatList, Pressable, ActivityIndicator } from "react-native";
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import {
+  Animated,
+  Easing,
+  FlatList,
+  Pressable,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import axios from "axios";
-import { getSimpleConversations, SimpleUser, SimpleDirectMessage } from "../services/api";
+import {
+  getSimpleConversations,
+  SimpleDirectMessage,
+  SimpleUser,
+} from "../services/api";
 
 type Conversation = {
   user: SimpleUser;
@@ -16,10 +30,32 @@ export default function MessagesList({ onSelectUser }: Props) {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [query, setQuery] = useState("");
+  const spinValue = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     loadConversations();
   }, []);
+
+  useEffect(() => {
+    if (!loading) {
+      spinValue.stopAnimation();
+      spinValue.setValue(0);
+      return;
+    }
+
+    const loop = Animated.loop(
+      Animated.timing(spinValue, {
+        toValue: 1,
+        duration: 900,
+        easing: Easing.linear,
+        useNativeDriver: true,
+      }),
+    );
+
+    loop.start();
+    return () => loop.stop();
+  }, [loading, spinValue]);
 
   const loadConversations = async () => {
     try {
@@ -49,86 +85,217 @@ export default function MessagesList({ onSelectUser }: Props) {
     return user.username || user.email.split("@")[0];
   };
 
-  const renderItem = ({ item }: { item: Conversation; index: number }) => {
+  const filteredConversations = useMemo(() => {
+    const needle = query.trim().toLowerCase();
+    if (!needle) return conversations;
+    return conversations.filter((conversation) => {
+      const name = getDisplayName(conversation.user).toLowerCase();
+      const email = conversation.user.email.toLowerCase();
+      return name.includes(needle) || email.includes(needle);
+    });
+  }, [conversations, query]);
+
+  const renderItem = ({ item }: { item: Conversation }) => {
     return (
-      <Pressable style={styles.itemContainer} onPress={() => onSelectUser(item.user)}>
+      <Pressable
+        style={styles.row}
+        onPress={() => onSelectUser(item.user)}
+      >
         <View style={styles.avatar}>
           <Text style={styles.avatarText}>{getInitials(item.user)}</Text>
-          <View style={styles.onlineIndicator} />
         </View>
-        <View style={styles.textContainer}>
+
+        <View style={styles.rowText}>
           <Text style={styles.nameText}>{getDisplayName(item.user)}</Text>
-          {item.lastMessage ? (
-            <Text style={styles.lastMessageText} numberOfLines={1}>
-              {item.lastMessage.content}
-            </Text>
-          ) : (
-            <Text style={styles.noMessageText}>No messages yet</Text>
-          )}
-        </View>
-        {item.lastMessage && (
-          <Text style={styles.timeText}>
-            {new Date(item.lastMessage.createdAt).toLocaleTimeString([], {
-              hour: "2-digit",
-              minute: "2-digit",
-            })}
+          <Text style={styles.statusText}>
+            {item.lastMessage?.content?.slice(0, 42) || "Tap to open chat"}
           </Text>
-        )}
+        </View>
+
+        <Ionicons name="chevron-forward" size={18} color="#8f8f8f" />
       </Pressable>
     );
   };
 
   if (loading) {
     return (
-      <View style={styles.center}>
-        <ActivityIndicator color="#f5f5f5" />
+      <View style={styles.loadingScreen}>
+        <View style={styles.loadingCard}>
+          <Animated.View
+            style={[
+              styles.loadingPulse,
+              {
+                opacity: spinValue.interpolate({
+                  inputRange: [0, 0.5, 1],
+                  outputRange: [0.45, 1, 0.45],
+                }),
+              },
+            ]}
+          />
+          <View style={styles.loadingLine} />
+          <View style={[styles.loadingLine, styles.loadingLineShort]} />
+          <Text style={styles.loadingText}>Loading conversations</Text>
+        </View>
       </View>
     );
   }
 
   return (
-    <View style={styles.container}>
-      {error ? <Text style={styles.errorText}>{error}</Text> : null}
-      
-      {conversations.length === 0 && !error ? (
-        <View style={styles.center}>
-          <Text style={styles.emptyText}>You haven't messaged anyone yet.</Text>
-          <Text style={styles.emptySubText}>Share an AI response to start a chat!</Text>
+      <View style={styles.container}>
+        <View style={styles.topBar}>
+          <Pressable onPress={loadConversations}>
+            <Text style={styles.cancelText}>Refresh</Text>
+          </Pressable>
         </View>
-      ) : (
-        <FlatList
-          data={conversations}
-          keyExtractor={(item) => item.user.id}
-          renderItem={renderItem}
-          contentContainerStyle={styles.listContent}
-          refreshing={loading}
-          onRefresh={loadConversations}
+
+      <View style={styles.searchWrap}>
+        <Ionicons name="search" size={16} color="#9b9b9b" />
+        <TextInput
+          style={styles.searchInput}
+          placeholder="Search chats..."
+          placeholderTextColor="#9b9b9b"
+          value={query}
+          onChangeText={setQuery}
         />
-      )}
+      </View>
+
+      <Text style={styles.sectionLabel}>YOUR CHATS</Text>
+
+      {error ? <Text style={styles.errorText}>{error}</Text> : null}
+
+      <FlatList
+        data={filteredConversations}
+        keyExtractor={(item) => item.user.id}
+        renderItem={renderItem}
+        contentContainerStyle={styles.listContent}
+        showsVerticalScrollIndicator={false}
+        refreshing={loading}
+        onRefresh={loadConversations}
+        ListEmptyComponent={
+          <View style={styles.emptyCard}>
+            <View style={styles.emptyIcon}>
+              <Text style={styles.emptyIconText}>*</Text>
+            </View>
+            <Text style={styles.emptyText}>No chats found</Text>
+            <Text style={styles.emptySubText}>
+              Start a conversation or refresh to load your chats.
+            </Text>
+          </View>
+        }
+      />
     </View>
   );
 }
 
-  const styles = StyleSheet.create({
+const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#212121",
   },
-  center: {
+  loadingScreen: {
     flex: 1,
-    justifyContent: "center",
     alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#212121",
+  },
+  loadingCard: {
+    minWidth: 180,
+    paddingVertical: 18,
+    paddingHorizontal: 22,
+    borderRadius: 20,
+    backgroundColor: "#262626",
+    borderWidth: 1,
+    borderColor: "#343434",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 12,
+    shadowColor: "#000",
+    shadowOpacity: 0.22,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 3,
+  },
+  loadingPulse: {
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    backgroundColor: "#f26d5b",
+    marginBottom: 6,
+  },
+  loadingLine: {
+    width: 130,
+    height: 10,
+    borderRadius: 999,
+    backgroundColor: "#3a3a3a",
+  },
+  loadingLineShort: {
+    width: 96,
+    marginTop: 8,
+  },
+  loadingText: {
+    color: "#f0f0f0",
+    fontSize: 13,
+    marginTop: 10,
+  },
+  topBar: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 18,
+    paddingTop: 8,
+    paddingBottom: 8,
+  },
+  cancelText: {
+    color: "#8fb7ff",
+    fontSize: 14,
+    fontWeight: "600",
+  },
+  searchWrap: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    marginHorizontal: 16,
+    marginBottom: 14,
+    paddingHorizontal: 14,
+    height: 48,
+    borderRadius: 14,
+    backgroundColor: "#2b2b2b",
+    borderWidth: 1,
+    borderColor: "#3f3f3f",
+  },
+  searchInput: {
+    flex: 1,
+    color: "#f0f0f0",
+    fontSize: 14,
+  },
+  sectionLabel: {
+    color: "#8e8e8e",
+    fontSize: 12,
+    fontWeight: "700",
+    letterSpacing: 0.6,
+    marginHorizontal: 18,
+    marginBottom: 10,
   },
   listContent: {
-    paddingVertical: 8,
+    paddingHorizontal: 16,
+    paddingBottom: 18,
+    gap: 12,
   },
-  itemContainer: {
+  row: {
     flexDirection: "row",
-    padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: "#2f2f2f",
     alignItems: "center",
-    backgroundColor: "#212121",
+    gap: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 12,
+    borderWidth: 1,
+    borderColor: "#2f2f2f",
+    borderRadius: 18,
+    backgroundColor: "#262626",
+    shadowColor: "#000",
+    shadowOpacity: 0.18,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 2,
   },
   avatar: {
     width: 48,
@@ -136,64 +303,66 @@ export default function MessagesList({ onSelectUser }: Props) {
     borderRadius: 24,
     justifyContent: "center",
     alignItems: "center",
-    marginRight: 16,
-    backgroundColor: "#2e2e2e",
-    borderWidth: 1,
-    borderColor: "#444",
+    backgroundColor: "#f26d5b",
   },
   avatarText: {
     color: "#f2f2f2",
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: "bold",
   },
-  onlineIndicator: {
-    position: "absolute",
-    bottom: 0,
-    right: 0,
-    width: 14,
-    height: 14,
-    borderRadius: 7,
-    backgroundColor: "#f0f0f0",
-    borderWidth: 2,
-    borderColor: "#212121",
-  },
-  textContainer: {
+  rowText: {
     flex: 1,
-    justifyContent: "center",
   },
   nameText: {
     fontSize: 16,
-    fontWeight: "600",
+    fontWeight: "700",
     color: "#f3f3f3",
-    marginBottom: 4,
   },
-  lastMessageText: {
-    fontSize: 14,
-    color: "#b0b0b0",
-  },
-  noMessageText: {
-    fontSize: 14,
-    color: "#9d9d9d",
-    fontStyle: "italic",
-  },
-  timeText: {
-    fontSize: 12,
-    color: "#8d8d8d",
-    marginLeft: 8,
+  statusText: {
+    fontSize: 13,
+    color: "#a7a7a7",
+    marginTop: 2,
   },
   errorText: {
-    color: "#f2f2f2",
-    textAlign: "center",
-    margin: 16,
+    color: "#ff9a9a",
+    marginHorizontal: 16,
+    marginBottom: 10,
+  },
+  emptyCard: {
+    marginHorizontal: 16,
+    marginTop: 18,
+    paddingVertical: 28,
+    paddingHorizontal: 18,
+    borderRadius: 24,
+    alignItems: "center",
+    backgroundColor: "#262626",
+    borderWidth: 1,
+    borderColor: "#353535",
+  },
+  emptyIcon: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    backgroundColor: "#313131",
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 12,
+  },
+  emptyIconText: {
+    color: "#f26d5b",
+    fontSize: 20,
+    fontWeight: "800",
   },
   emptyText: {
     color: "#f0f0f0",
-    fontSize: 16,
-    fontWeight: "500",
+    fontSize: 18,
+    fontWeight: "700",
   },
   emptySubText: {
     color: "#a7a7a7",
     fontSize: 14,
     marginTop: 8,
+    textAlign: "center",
+    lineHeight: 20,
   },
 });

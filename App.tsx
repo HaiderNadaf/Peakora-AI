@@ -17,6 +17,8 @@ import Constants from "expo-constants";
 import { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
+  Animated,
+  Easing,
   KeyboardAvoidingView,
   Modal,
   Platform,
@@ -49,35 +51,41 @@ Notifications.setNotificationHandler({
     shouldShowAlert: true,
     shouldPlaySound: true,
     shouldSetBadge: false,
+    shouldShowBanner: true,
+    shouldShowList: true,
   }),
 });
 
 async function registerForPushNotificationsAsync() {
   let token;
-  if (Platform.OS === 'android') {
-    await Notifications.setNotificationChannelAsync('default', {
-      name: 'default',
+  if (Platform.OS === "android") {
+    await Notifications.setNotificationChannelAsync("default", {
+      name: "default",
       importance: Notifications.AndroidImportance.MAX,
       vibrationPattern: [0, 250, 250, 250],
-      lightColor: '#FF231F7C',
+      lightColor: "#FF231F7C",
     });
   }
 
   if (Device.isDevice) {
-    const { status: existingStatus } = await Notifications.getPermissionsAsync();
+    const { status: existingStatus } =
+      await Notifications.getPermissionsAsync();
     let finalStatus = existingStatus;
-    if (existingStatus !== 'granted') {
+    if (existingStatus !== "granted") {
       const { status } = await Notifications.requestPermissionsAsync();
       finalStatus = status;
     }
-    if (finalStatus !== 'granted') {
-      console.log('Failed to get push token for push notification!');
+    if (finalStatus !== "granted") {
+      console.log("Failed to get push token for push notification!");
       return;
     }
-    const projectId = Constants.expoConfig?.extra?.eas?.projectId ?? Constants.easConfig?.projectId ?? "";
+    const projectId =
+      Constants.expoConfig?.extra?.eas?.projectId ??
+      Constants.easConfig?.projectId ??
+      "";
     token = (await Notifications.getExpoPushTokenAsync({ projectId })).data;
   } else {
-    console.log('Must use physical device for Push Notifications');
+    console.log("Must use physical device for Push Notifications");
   }
 
   return token;
@@ -86,6 +94,12 @@ async function registerForPushNotificationsAsync() {
 type Message = {
   role: "user" | "assistant";
   text: string;
+};
+
+type AccountProfile = {
+  id: string;
+  email: string;
+  createdAt: string;
 };
 
 const SILENCE_THRESHOLD_DB = -45;
@@ -106,7 +120,9 @@ if (!clerkPublishableKey) {
 
 function AppContent() {
   const [messages, setMessages] = useState<Message[]>([]);
-  const [currentScreen, setCurrentScreen] = useState<"ai" | "messages" | "chat">("ai");
+  const [currentScreen, setCurrentScreen] = useState<
+    "ai" | "messages" | "chat"
+  >("ai");
   const [selectedUser, setSelectedUser] = useState<SimpleUser | null>(null);
   const [shareModalVisible, setShareModalVisible] = useState(false);
   const [contentToShare, setContentToShare] = useState("");
@@ -130,6 +146,9 @@ function AppContent() {
 
   const [token, setToken] = useState<string | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
+  const [accountProfile, setAccountProfile] = useState<AccountProfile | null>(
+    null,
+  );
   const [authMode, setAuthMode] = useState<"login" | "signup">("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -139,10 +158,12 @@ function AppContent() {
   );
   const [authError, setAuthError] = useState("");
   const [authSubmitting, setAuthSubmitting] = useState(false);
+  const appSpinValue = useRef(new Animated.Value(0)).current;
 
   const resetAuthState = () => {
     setAuthToken(null);
     setToken(null);
+    setAccountProfile(null);
     setMessages([]);
     setEmail("");
     setPassword("");
@@ -181,6 +202,7 @@ function AppContent() {
           setAuthToken(null);
           if (!cancelled) {
             setToken(null);
+            setAccountProfile(null);
             setMessages([]);
             setAuthStep("credentials");
           }
@@ -192,6 +214,7 @@ function AppContent() {
           setAuthToken(null);
           if (!cancelled) {
             setToken(null);
+            setAccountProfile(null);
             setMessages([]);
             setAuthError(
               "Signed in, but Clerk did not provide a valid session token. Please logout and sign in again.",
@@ -206,10 +229,13 @@ function AppContent() {
         }
 
         try {
-          await getMe();
+          const profile = await getMe();
+          if (!cancelled) {
+            setAccountProfile(profile);
+          }
           if (!cancelled) {
             await loadHistory();
-            
+
             try {
               const pushToken = await registerForPushNotificationsAsync();
               if (pushToken) {
@@ -232,6 +258,7 @@ function AppContent() {
         setAuthToken(null);
         if (!cancelled) {
           setToken(null);
+          setAccountProfile(null);
           setMessages([]);
         }
       } finally {
@@ -567,6 +594,25 @@ function AppContent() {
     [],
   );
 
+  useEffect(() => {
+    if (authLoading || (isSignedIn && !token)) {
+      const loop = Animated.loop(
+        Animated.timing(appSpinValue, {
+          toValue: 1,
+          duration: 900,
+          easing: Easing.linear,
+          useNativeDriver: true,
+        }),
+      );
+
+      loop.start();
+      return () => loop.stop();
+    }
+
+    appSpinValue.stopAnimation();
+    appSpinValue.setValue(0);
+  }, [appSpinValue, authLoading, isSignedIn, token]);
+
   const handleAuth = async () => {
     try {
       setAuthSubmitting(true);
@@ -599,6 +645,8 @@ function AppContent() {
           setTokenProvider(() => getToken({ skipCache: true }));
           setAuthToken(sessionToken ?? null);
           setToken(sessionToken ?? null);
+          const profile = await getMe();
+          setAccountProfile(profile);
           return;
         }
 
@@ -632,6 +680,8 @@ function AppContent() {
         setTokenProvider(() => getToken({ skipCache: true }));
         setAuthToken(sessionToken ?? null);
         setToken(sessionToken ?? null);
+        const profile = await getMe();
+        setAccountProfile(profile);
         return;
       }
 
@@ -704,6 +754,8 @@ function AppContent() {
       setTokenProvider(() => getToken({ skipCache: true }));
       setAuthToken(sessionToken ?? null);
       setToken(sessionToken ?? null);
+      const profile = await getMe();
+      setAccountProfile(profile);
     } catch (error) {
       const message = getClerkErrorMessage(error, "Verification failed");
       setAuthError(message);
@@ -750,10 +802,24 @@ function AppContent() {
       <SafeAreaProvider>
         <SafeAreaView style={styles.safeArea} edges={["top", "bottom"]}>
           <View style={styles.loaderWrap}>
-            <ActivityIndicator size="large" color="#f5f5f5" />
-            <Text style={styles.loaderText}>
-              {isSignedIn ? "Opening Peakora AI..." : "Loading Peakora AI..."}
-            </Text>
+            <View style={styles.loaderCard}>
+              <Animated.View
+                style={[
+                  styles.loaderPulse,
+                  {
+                    opacity: appSpinValue.interpolate({
+                      inputRange: [0, 0.5, 1],
+                      outputRange: [0.45, 1, 0.45],
+                    }),
+                  },
+                ]}
+              />
+              <View style={styles.loaderLine} />
+              <View style={[styles.loaderLine, styles.loaderLineShort]} />
+              <Text style={styles.loaderText}>
+                {isSignedIn ? "Opening Peakora AI..." : "Loading Peakora AI..."}
+              </Text>
+            </View>
           </View>
         </SafeAreaView>
       </SafeAreaProvider>
@@ -908,24 +974,57 @@ function AppContent() {
           <View style={styles.header}>
             {currentScreen === "ai" ? (
               <>
-                <Text style={styles.title}>Peakora AI</Text>
-                <View style={styles.headerRight}>
-                  <Text style={styles.status}>
-                    {isRecording ? "Listening..." : loading ? "Thinking..." : voiceStatus}
+                <View style={styles.headerLeft}>
+                  <Text style={styles.title}>Peakora AI</Text>
+                  <Text style={styles.headerSubtitle}>Ask anything</Text>
+                  <Text style={styles.accountLabel}>
+                    {accountProfile
+                      ? `Signed in as ${accountProfile.email}`
+                      : "Account not loaded yet"}
                   </Text>
-                  <Pressable onPress={() => setCurrentScreen("messages")}>
-                    <Ionicons name="chatbubbles-outline" size={24} color="#d7d7d7" />
+                </View>
+                <View style={styles.headerRight}>
+                  <View style={styles.statusPill}>
+                    <Text style={styles.status}>
+                      {isRecording
+                        ? "Listening..."
+                        : loading
+                          ? "Thinking..."
+                          : voiceStatus}
+                    </Text>
+                  </View>
+                  <Pressable
+                    onPress={() => setCurrentScreen("messages")}
+                    style={styles.messagesIconButton}
+                  >
+                    <Ionicons
+                      name="chatbubbles-outline"
+                      size={22}
+                      color="#f2f2f2"
+                    />
                   </Pressable>
                 </View>
               </>
             ) : (
               <>
-                <Pressable onPress={() => {
-                  if (currentScreen === "chat") setCurrentScreen("messages");
-                  else setCurrentScreen("ai");
-                }}>
+                <Pressable
+                  onPress={() => {
+                    if (currentScreen === "chat") setCurrentScreen("messages");
+                    else setCurrentScreen("ai");
+                  }}
+                >
                   <Text style={styles.title}>
-                    {"<"} {currentScreen === "chat" ? selectedUser?.username || selectedUser?.email.split('@')[0] || "Chat" : "Messages"}
+                    {"<"}{" "}
+                    {currentScreen === "chat"
+                      ? selectedUser?.username ||
+                        selectedUser?.email.split("@")[0] ||
+                        "Chat"
+                      : "Messages"}
+                  </Text>
+                  <Text style={styles.accountLabel}>
+                    {accountProfile
+                      ? `Signed in as ${accountProfile.email}`
+                      : "Account not loaded yet"}
                   </Text>
                 </Pressable>
                 <View style={styles.headerRight}>
@@ -937,12 +1036,20 @@ function AppContent() {
             )}
           </View>
 
-          <View style={[styles.chatArea, currentScreen !== "ai" && { paddingHorizontal: 0, paddingBottom: 0 }]}>
+          <View
+            style={[
+              styles.chatArea,
+              currentScreen !== "ai" && {
+                paddingHorizontal: 0,
+                paddingBottom: 0,
+              },
+            ]}
+          >
             {currentScreen === "ai" && (
               <>
-                <ChatBox 
-                  messages={messages} 
-                  loading={loading} 
+                <ChatBox
+                  messages={messages}
+                  loading={loading}
                   onShare={(text) => {
                     setContentToShare(text);
                     setShareModalVisible(true);
@@ -961,10 +1068,12 @@ function AppContent() {
             )}
 
             {currentScreen === "messages" && (
-              <MessagesList onSelectUser={(u) => {
-                setSelectedUser(u);
-                setCurrentScreen("chat");
-              }} />
+              <MessagesList
+                onSelectUser={(u) => {
+                  setSelectedUser(u);
+                  setCurrentScreen("chat");
+                }}
+              />
             )}
 
             {currentScreen === "chat" && selectedUser && (
@@ -1060,7 +1169,41 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
+    paddingHorizontal: 18,
+  },
+  loaderCard: {
+    minWidth: 180,
+    paddingVertical: 18,
+    paddingHorizontal: 22,
+    borderRadius: 20,
+    backgroundColor: "#262626",
+    borderWidth: 1,
+    borderColor: "#343434",
+    alignItems: "center",
+    justifyContent: "center",
     gap: 12,
+    shadowColor: "#000",
+    shadowOpacity: 0.22,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 3,
+  },
+  loaderPulse: {
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    backgroundColor: "#f26d5b",
+    marginBottom: 6,
+  },
+  loaderLine: {
+    width: 130,
+    height: 10,
+    borderRadius: 999,
+    backgroundColor: "#3a3a3a",
+  },
+  loaderLineShort: {
+    width: 96,
+    marginTop: 8,
   },
   authCenter: {
     flex: 1,
@@ -1068,7 +1211,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingHorizontal: 16,
   },
-  loaderText: { color: "#f5f5f5" },
+  loaderText: { color: "#f5f5f5", fontSize: 13, textAlign: "center" },
   authContainer: {
     flex: 1,
     justifyContent: "center",
@@ -1127,15 +1270,53 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    borderBottomWidth: 1,
-    borderBottomColor: "#2f2f2f",
-    paddingBottom: 12,
-    paddingHorizontal: 2,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderRadius: 24,
+    backgroundColor: "#2b2b2b",
+    borderWidth: 1,
+    borderColor: "#3f3f3f",
+    gap: 10,
   },
-  headerRight: { alignItems: "flex-end", gap: 3 },
-  title: { color: "#f2f2f2", fontSize: 19, fontWeight: "700" },
-  status: { color: "#a7a7a7", fontSize: 13 },
-  logoutText: { color: "#d7d7d7", fontSize: 12 },
+  headerLeft: {
+    flex: 1,
+  },
+  headerRight: {
+    alignItems: "center",
+    flexDirection: "row",
+    gap: 10,
+  },
+  title: { color: "#f7f7f7", fontSize: 20, fontWeight: "800" },
+  headerSubtitle: {
+    color: "#9d9d9d",
+    fontSize: 12,
+    marginTop: 2,
+  },
+  accountLabel: {
+    color: "#b8b8b8",
+    fontSize: 11,
+    marginTop: 4,
+  },
+  statusPill: {
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 999,
+    backgroundColor: "#333333",
+    borderWidth: 1,
+    borderColor: "#3a3a3a",
+  },
+  status: { color: "#d8d8d8", fontSize: 12, fontWeight: "600" },
+  logoutText: { color: "#d7d7d7", fontSize: 12, fontWeight: "600" },
+  messagesIconButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#333333",
+    borderWidth: 1,
+    borderColor: "#3a3a3a",
+  },
   modeTabs: {
     flexDirection: "row",
     gap: 8,
