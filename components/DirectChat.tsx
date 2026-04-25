@@ -96,11 +96,7 @@ export default function DirectChat({ otherUser }: Props) {
     }
   };
 
-  const renderItem = ({
-    item,
-  }: {
-    item: SimpleDirectMessage;
-  }) => {
+  const renderItem = ({ item }: { item: SimpleDirectMessage }) => {
     const isMine = item.senderId !== otherUser.id;
     return (
       <View
@@ -109,7 +105,12 @@ export default function DirectChat({ otherUser }: Props) {
           isMine ? styles.messageRowMine : styles.messageRowTheirs,
         ]}
       >
-        <View style={[styles.bubble, isMine ? styles.mineBubble : styles.theirBubble]}>
+        <View
+          style={[
+            styles.bubble,
+            isMine ? styles.mineBubble : styles.theirBubble,
+          ]}
+        >
           <Text style={styles.messageText}>{item.content}</Text>
         </View>
       </View>
@@ -145,62 +146,67 @@ export default function DirectChat({ otherUser }: Props) {
     <KeyboardAvoidingView
       style={styles.container}
       behavior={Platform.OS === "ios" ? "padding" : "height"}
-      keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 0}
+      keyboardVerticalOffset={Platform.OS === "ios" ? 92 : 0}
     >
-      <View style={styles.topBar}>
-        <Pressable onPress={loadMessages}>
-          <Text style={styles.cancelText}>Refresh chat</Text>
-        </Pressable>
-      </View>
+      <View style={styles.screenBody}>
+        <View style={styles.topBar}>
+          <Pressable onPress={loadMessages}>
+            <Text style={styles.cancelText}>Refresh chat</Text>
+          </Pressable>
+        </View>
 
-      <View style={styles.searchWrap}>
-        <Ionicons name="search" size={16} color="#9b9b9b" />
-        <TextInput
-          style={styles.searchInput}
-          placeholder="Search messages..."
-          placeholderTextColor="#9b9b9b"
-          value={query}
-          onChangeText={setQuery}
-        />
-      </View>
+        <View style={styles.searchWrap}>
+          <Ionicons name="search" size={16} color="#9b9b9b" />
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Search messages..."
+            placeholderTextColor="#9b9b9b"
+            value={query}
+            onChangeText={setQuery}
+          />
+        </View>
 
-      <FlatList
-        data={filteredMessages}
-        keyExtractor={(item) => item.id}
-        renderItem={renderItem}
-        contentContainerStyle={styles.listContent}
-        showsVerticalScrollIndicator={false}
-        ListEmptyComponent={
-          <View style={styles.emptyCard}>
-            <View style={styles.emptyIcon}>
-              <Text style={styles.emptyIconText}>*</Text>
+        <FlatList
+          style={styles.messageList}
+          data={filteredMessages}
+          keyExtractor={(item) => item.id}
+          renderItem={renderItem}
+          contentContainerStyle={styles.listContent}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
+          ListEmptyComponent={
+            <View style={styles.emptyCard}>
+              <View style={styles.emptyIcon}>
+                <Text style={styles.emptyIconText}>*</Text>
+              </View>
+              <Text style={styles.emptyText}>No messages yet</Text>
+              <Text style={styles.emptySubText}>
+                Start the conversation below.
+              </Text>
             </View>
-            <Text style={styles.emptyText}>No messages yet</Text>
-            <Text style={styles.emptySubText}>
-              Start the conversation below.
-            </Text>
-          </View>
-        }
-      />
-
-      <View style={styles.composer}>
-        <TextInput
-          style={styles.composerInput}
-          placeholder="Write a message..."
-          placeholderTextColor="#9b9b9b"
-          value={draft}
-          onChangeText={setDraft}
-          multiline
+          }
         />
-        <Pressable
-          style={[styles.sendButton, sending && styles.sendButtonDisabled]}
-          onPress={() => void handleSend()}
-          disabled={sending}
-        >
-          <Text style={styles.sendButtonText}>
-            {sending ? "Sending" : "Send"}
-          </Text>
-        </Pressable>
+
+        <View style={styles.composer}>
+          <TextInput
+            style={styles.composerInput}
+            placeholder="Write a message..."
+            placeholderTextColor="#9b9b9b"
+            value={draft}
+            onChangeText={setDraft}
+            multiline
+          />
+          <Pressable
+            style={[styles.sendButton, sending && styles.sendButtonDisabled]}
+            onPress={() => void handleSend()}
+            disabled={sending}
+          >
+            <Text style={styles.sendButtonText}>
+              {sending ? "Sending" : "Send"}
+            </Text>
+          </Pressable>
+        </View>
       </View>
     </KeyboardAvoidingView>
   );
@@ -210,6 +216,10 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#212121",
+  },
+  screenBody: {
+    flex: 1,
+    position: "relative",
   },
   loadingScreen: {
     flex: 1,
@@ -283,9 +293,12 @@ const styles = StyleSheet.create({
     color: "#f0f0f0",
     fontSize: 14,
   },
+  messageList: {
+    flex: 1,
+  },
   listContent: {
     paddingHorizontal: 16,
-    paddingBottom: 18,
+    paddingBottom: 110,
     gap: 12,
   },
   messageRow: {
@@ -363,7 +376,14 @@ const styles = StyleSheet.create({
     gap: 10,
     paddingHorizontal: 16,
     paddingBottom: 14,
-    paddingTop: 8,
+    paddingTop: 10,
+    borderTopWidth: 1,
+    borderTopColor: "#303030",
+    backgroundColor: "#212121",
+    position: "absolute",
+    left: 0,
+    right: 0,
+    bottom: 0,
   },
   composerInput: {
     flex: 1,

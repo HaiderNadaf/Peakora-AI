@@ -124,6 +124,9 @@ function AppContent() {
     "ai" | "messages" | "chat"
   >("ai");
   const [selectedUser, setSelectedUser] = useState<SimpleUser | null>(null);
+  const [seenDirectChatUserIds, setSeenDirectChatUserIds] = useState<string[]>(
+    [],
+  );
   const [shareModalVisible, setShareModalVisible] = useState(false);
   const [contentToShare, setContentToShare] = useState("");
   const [loading, setLoading] = useState(false);
@@ -1069,8 +1072,13 @@ function AppContent() {
 
             {currentScreen === "messages" && (
               <MessagesList
+                currentUserId={accountProfile?.id ?? ""}
+                seenUserIds={seenDirectChatUserIds}
                 onSelectUser={(u) => {
                   setSelectedUser(u);
+                  setSeenDirectChatUserIds((prev) =>
+                    prev.includes(u.id) ? prev : [...prev, u.id],
+                  );
                   setCurrentScreen("chat");
                 }}
               />

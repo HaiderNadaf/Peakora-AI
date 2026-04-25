@@ -24,9 +24,15 @@ type Conversation = {
 
 type Props = {
   onSelectUser: (user: SimpleUser) => void;
+  currentUserId: string;
+  seenUserIds: string[];
 };
 
-export default function MessagesList({ onSelectUser }: Props) {
+export default function MessagesList({
+  onSelectUser,
+  currentUserId,
+  seenUserIds,
+}: Props) {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -96,6 +102,12 @@ export default function MessagesList({ onSelectUser }: Props) {
   }, [conversations, query]);
 
   const renderItem = ({ item }: { item: Conversation }) => {
+    const isUnread =
+      !!currentUserId &&
+      !!item.lastMessage &&
+      item.lastMessage.senderId !== currentUserId &&
+      !seenUserIds.includes(item.user.id);
+
     return (
       <Pressable
         style={styles.row}
@@ -106,7 +118,14 @@ export default function MessagesList({ onSelectUser }: Props) {
         </View>
 
         <View style={styles.rowText}>
-          <Text style={styles.nameText}>{getDisplayName(item.user)}</Text>
+          <View style={styles.rowTitleLine}>
+            <Text style={styles.nameText}>{getDisplayName(item.user)}</Text>
+            {isUnread ? (
+              <View style={styles.unreadBadge}>
+                <Text style={styles.unreadBadgeText}>1</Text>
+              </View>
+            ) : null}
+          </View>
           <Text style={styles.statusText}>
             {item.lastMessage?.content?.slice(0, 42) || "Tap to open chat"}
           </Text>
@@ -313,10 +332,29 @@ const styles = StyleSheet.create({
   rowText: {
     flex: 1,
   },
+  rowTitleLine: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
   nameText: {
     fontSize: 16,
     fontWeight: "700",
     color: "#f3f3f3",
+  },
+  unreadBadge: {
+    minWidth: 22,
+    height: 22,
+    paddingHorizontal: 6,
+    borderRadius: 11,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#f26d5b",
+  },
+  unreadBadgeText: {
+    color: "#fff",
+    fontSize: 12,
+    fontWeight: "800",
   },
   statusText: {
     fontSize: 13,
