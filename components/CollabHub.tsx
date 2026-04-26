@@ -349,7 +349,7 @@ const styles = StyleSheet.create({
   },
   chipActive: {
     backgroundColor: "#55372f",
-    borderColor: "#ef8b6b",
+    borderColor: "#5f87d8",
   },
   chipText: { color: "#efefef", fontSize: 12 },
   primaryButton: {
@@ -377,7 +377,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#262626",
   },
   sessionRowActive: {
-    borderColor: "#ef8b6b",
+    borderColor: "#5f87d8",
     backgroundColor: "#332521",
   },
   sessionTitle: { color: "#f3f3f3", fontWeight: "700", fontSize: 15 },
@@ -401,5 +401,5 @@ const styles = StyleSheet.create({
     padding: 10,
     gap: 6,
   },
-  tagLabel: { color: "#f39f80", fontSize: 12, fontWeight: "700" },
+  tagLabel: { color: "#8fb7ff", fontSize: 12, fontWeight: "700" },
 });

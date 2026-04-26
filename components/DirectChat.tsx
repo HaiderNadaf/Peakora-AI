@@ -243,7 +243,7 @@ const styles = StyleSheet.create({
     width: 18,
     height: 18,
     borderRadius: 9,
-    backgroundColor: "#f26d5b",
+    backgroundColor: "#5f87d8",
     marginBottom: 6,
   },
   loadingLine: {
@@ -354,7 +354,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   emptyIconText: {
-    color: "#f26d5b",
+    color: "#5f87d8",
     fontSize: 20,
     fontWeight: "800",
   },

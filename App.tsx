@@ -1200,7 +1200,7 @@ const styles = StyleSheet.create({
     width: 18,
     height: 18,
     borderRadius: 9,
-    backgroundColor: "#f26d5b",
+    backgroundColor: "#5f87d8",
     marginBottom: 6,
   },
   loaderLine: {
@@ -1338,8 +1338,8 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
   },
   modeTabActive: {
-    borderColor: "#ef8b6b",
-    backgroundColor: "#3a2a26",
+    borderColor: "#5f87d8",
+    backgroundColor: "#263346",
   },
   modeTabText: {
     color: "#efefef",
@@ -1404,7 +1404,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#565656",
   },
   voiceBarActive: {
-    backgroundColor: "#f26d5b",
+    backgroundColor: "#5f87d8",
   },
   voiceChipRow: {
     flexDirection: "row",
@@ -1421,8 +1421,8 @@ const styles = StyleSheet.create({
     borderColor: "#484848",
   },
   voiceChipLive: {
-    backgroundColor: "#40201d",
-    borderColor: "#f26d5b",
+    backgroundColor: "#22314d",
+    borderColor: "#5f87d8",
   },
   voiceChipText: {
     color: "#f2f2f2",
